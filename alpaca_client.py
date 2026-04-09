@@ -1,0 +1,83 @@
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
+from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus
+import config
+
+
+def get_client():
+    return TradingClient(
+        api_key=config.ALPACA_API_KEY,
+        secret_key=config.ALPACA_SECRET_KEY,
+        paper=config.PAPER_TRADING,
+    )
+
+
+def get_account():
+    client = get_client()
+    acct = client.get_account()
+    return {
+        "cash": float(acct.cash),
+        "portfolio_value": float(acct.portfolio_value),
+        "buying_power": float(acct.buying_power),
+        "equity": float(acct.equity),
+        "status": acct.status,
+    }
+
+
+def get_positions():
+    client = get_client()
+    positions = client.get_all_positions()
+    return [
+        {
+            "symbol": p.symbol,
+            "qty": float(p.qty),
+            "market_value": float(p.market_value),
+            "avg_entry_price": float(p.avg_entry_price),
+            "current_price": float(p.current_price),
+            "unrealized_pl": float(p.unrealized_pl),
+            "unrealized_plpc": float(p.unrealized_plpc),
+        }
+        for p in positions
+    ]
+
+
+def place_order(symbol, side, notional):
+    """Place a market order using dollar amount (notional) for fractional share support."""
+    client = get_client()
+    order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
+    order_data = MarketOrderRequest(
+        symbol=symbol,
+        notional=round(notional, 2),
+        side=order_side,
+        time_in_force=TimeInForce.DAY,
+    )
+    order = client.submit_order(order_data)
+    return {
+        "id": str(order.id),
+        "symbol": order.symbol,
+        "side": str(order.side),
+        "notional": str(order.notional),
+        "status": str(order.status),
+        "submitted_at": str(order.submitted_at),
+    }
+
+
+def get_recent_orders(limit=10):
+    client = get_client()
+    request = GetOrdersRequest(
+        status=QueryOrderStatus.ALL,
+        limit=limit,
+    )
+    orders = client.get_orders(request)
+    return [
+        {
+            "symbol": o.symbol,
+            "side": str(o.side),
+            "notional": str(o.notional) if o.notional else None,
+            "qty": str(o.qty) if o.qty else None,
+            "filled_avg_price": str(o.filled_avg_price) if o.filled_avg_price else None,
+            "status": str(o.status),
+            "submitted_at": str(o.submitted_at),
+        }
+        for o in orders
+    ]
