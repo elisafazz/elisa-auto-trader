@@ -1,7 +1,14 @@
+import subprocess
 import alpaca_client
 import analyst
 import notion_logger
 import config
+
+
+def notify(title, message):
+    """Send a macOS notification via osascript."""
+    script = f'display notification "{message}" with title "{title}"'
+    subprocess.run(["osascript", "-e", script], capture_output=True)
 
 
 def status():
@@ -37,8 +44,17 @@ def analyze():
     positions = alpaca_client.get_positions()
     recent_orders = alpaca_client.get_recent_orders(limit=5)
 
+    # Fetch live price data for holdings + SPY benchmark
+    watched = [p["symbol"] for p in positions] if positions else []
+    if "SPY" not in watched:
+        watched.append("SPY")
+    try:
+        price_data = alpaca_client.get_bars(watched, days=10)
+    except Exception:
+        price_data = None
+
     print("Analyzing portfolio with Claude...\n")
-    result = analyst.analyze(account, positions, recent_orders)
+    result = analyst.analyze(account, positions, recent_orders, price_data)
 
     print(f"Market Summary: {result['market_summary']}\n")
 
@@ -100,3 +116,25 @@ def execute(recommendations):
         })
 
     return executed
+
+
+def auto_run():
+    """Full autonomous loop: analyze -> execute -> notify. Used by cron."""
+    result = analyze()
+    recs = result.get("recommendations", [])
+
+    if not recs:
+        notify("Auto-Trader", "No trades recommended today")
+        return
+
+    executed = execute(recs)
+
+    if executed:
+        lines = []
+        for e in executed:
+            rec = e["recommendation"]
+            lines.append(f"{rec['action'].upper()} ${rec['amount_usd']:.0f} {rec['symbol']}")
+        summary = ", ".join(lines)
+        notify("Auto-Trader", f"Executed: {summary}")
+    else:
+        notify("Auto-Trader", "Analysis complete, all trades skipped (safety limits)")

@@ -1,6 +1,10 @@
+from datetime import datetime, timedelta
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
 import config
 
 
@@ -60,6 +64,43 @@ def place_order(symbol, side, notional):
         "status": str(order.status),
         "submitted_at": str(order.submitted_at),
     }
+
+
+def get_data_client():
+    return StockHistoricalDataClient(
+        api_key=config.ALPACA_API_KEY,
+        secret_key=config.ALPACA_SECRET_KEY,
+    )
+
+
+def get_bars(symbols, days=10):
+    """Fetch daily bars for a list of symbols over the last N trading days."""
+    client = get_data_client()
+    end = datetime.now()
+    start = end - timedelta(days=days + 5)  # buffer for weekends
+    request = StockBarsRequest(
+        symbol_or_symbols=symbols,
+        timeframe=TimeFrame.Day,
+        start=start,
+        end=end,
+        limit=days,
+    )
+    bars = client.get_stock_bars(request)
+    result = {}
+    for symbol in symbols:
+        symbol_bars = bars.data.get(symbol, [])
+        result[symbol] = [
+            {
+                "date": str(b.timestamp.date()),
+                "open": float(b.open),
+                "high": float(b.high),
+                "low": float(b.low),
+                "close": float(b.close),
+                "volume": int(b.volume),
+            }
+            for b in symbol_bars
+        ]
+    return result
 
 
 def get_recent_orders(limit=10):
