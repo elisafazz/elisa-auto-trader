@@ -228,3 +228,10 @@ def report():
         "strategy_notes": f"Swing trading with Claude Sonnet analysis. {len(positions)} open positions.",
     }
     notion_logger.log_report(report_data)
+
+    # Notification summary
+    spy_str = f" | SPY: {spy_return:+.1f}%" if spy_return is not None else ""
+    notify(
+        "Auto-Trader Weekly Report",
+        f"${portfolio_value:,.0f} ({total_return_pct:+.1f}%){spy_str} | {len(week_trades)} trades"
+    )
