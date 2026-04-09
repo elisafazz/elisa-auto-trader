@@ -7,6 +7,7 @@ load_dotenv()
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY", "")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 
 # Trading mode
 PAPER_TRADING = True
@@ -22,5 +23,5 @@ ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Sonnet for daily analysis (cost-e
 DEEP_ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Upgrade to Opus when needed
 
 # Notion DB IDs
-TRADE_LOG_DB = "23aec1ab-34bc-468e-a809-79c6ddb05aab"
-PERFORMANCE_REPORTS_DB = "e4216810-2905-4027-baf5-112716f3697d"
+TRADE_LOG_DB = "abfc7ab1-17ad-44d2-a510-8bf39269d3fa"
+PERFORMANCE_REPORTS_DB = "005d0307-f9b1-4dca-9213-8a48745ee659"

@@ -32,7 +32,7 @@ def main():
                 print("Trades not executed.")
 
     if args.report:
-        print("Weekly report generation not yet implemented.")
+        trader.report()
 
 
 if __name__ == "__main__":

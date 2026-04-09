@@ -3,7 +3,8 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest
+from alpaca.data.historical.news import NewsClient
+from alpaca.data.requests import StockBarsRequest, NewsRequest
 from alpaca.data.timeframe import TimeFrame
 import config
 
@@ -101,6 +102,33 @@ def get_bars(symbols, days=10):
             for b in symbol_bars
         ]
     return result
+
+
+def get_news(symbols=None, limit=10):
+    """Fetch recent market news, optionally filtered by symbols."""
+    client = NewsClient(
+        api_key=config.ALPACA_API_KEY,
+        secret_key=config.ALPACA_SECRET_KEY,
+    )
+    symbol_str = ",".join(symbols) if symbols else None
+    request = NewsRequest(
+        symbols=symbol_str,
+        start=datetime.now() - timedelta(days=2),
+        end=datetime.now(),
+        limit=limit,
+        include_content=False,
+    )
+    news_set = client.get_news(request)
+    return [
+        {
+            "headline": n.headline,
+            "source": n.source,
+            "symbols": [s for s in (n.symbols or [])],
+            "summary": n.summary or "",
+            "created_at": str(n.created_at),
+        }
+        for n in news_set.data.get("news", [])
+    ]
 
 
 def get_recent_orders(limit=10):

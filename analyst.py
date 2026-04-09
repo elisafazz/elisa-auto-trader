@@ -43,7 +43,7 @@ If no trades are warranted, return an empty recommendations array with an explan
 )
 
 
-def analyze(account, positions, recent_orders, price_data=None):
+def analyze(account, positions, recent_orders, price_data=None, news=None):
     """Call Claude to analyze the portfolio and generate trade recommendations."""
     client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
@@ -83,6 +83,15 @@ OPEN POSITIONS:
                     f"range: ${min(b['low'] for b in bars):.2f}-${max(b['high'] for b in bars):.2f}, "
                     f"avg vol: {sum(b['volume'] for b in bars) // len(bars):,})\n"
                 )
+
+    if news:
+        portfolio_context += "\nMARKET NEWS (last 48 hours):\n"
+        for n in news[:10]:
+            syms = ", ".join(n["symbols"][:3]) if n["symbols"] else "general"
+            portfolio_context += f"- [{syms}] {n['headline']}"
+            if n["summary"]:
+                portfolio_context += f" -- {n['summary'][:150]}"
+            portfolio_context += "\n"
 
     portfolio_context += (
         "\nAnalyze the current market conditions and my portfolio. "
