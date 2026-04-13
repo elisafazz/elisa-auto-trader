@@ -1,4 +1,5 @@
 import json
+import time
 import anthropic
 import config
 
@@ -98,12 +99,22 @@ OPEN POSITIONS:
         "What trades, if any, should I make today?"
     )
 
-    response = client.messages.create(
-        model=config.ANALYSIS_MODEL,
-        max_tokens=1500,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": portfolio_context}],
-    )
+    for attempt in range(5):
+        try:
+            response = client.messages.create(
+                model=config.ANALYSIS_MODEL,
+                max_tokens=1500,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": portfolio_context}],
+            )
+            break
+        except anthropic.APIStatusError as e:
+            if e.status_code in (429, 529) and attempt < 4:
+                wait = 60 * (attempt + 1)
+                print(f"API {e.status_code}, retrying in {wait}s (attempt {attempt + 1}/5)...")
+                time.sleep(wait)
+            else:
+                raise
 
     raw = response.content[0].text
 
