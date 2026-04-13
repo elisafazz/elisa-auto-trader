@@ -130,6 +130,13 @@ def execute(recommendations):
 
 def auto_run():
     """Full autonomous loop: analyze -> execute -> notify. Used by cron."""
+    # Skip if market is closed (holidays, weekends)
+    clock = alpaca_client.get_clock()
+    if not clock["is_open"]:
+        notify("Auto-Trader", f"Market closed today -- skipping. Next open: {clock['next_open']}")
+        print(f"Market closed. Next open: {clock['next_open']}")
+        return
+
     result = analyze()
     recs = result.get("recommendations", [])
 

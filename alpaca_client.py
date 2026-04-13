@@ -17,6 +17,16 @@ def get_client():
     )
 
 
+def get_clock():
+    client = get_client()
+    clock = client.get_clock()
+    return {
+        "is_open": clock.is_open,
+        "next_open": str(clock.next_open),
+        "next_close": str(clock.next_close),
+    }
+
+
 def get_account():
     client = get_client()
     acct = client.get_account()
