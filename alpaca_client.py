@@ -160,3 +160,27 @@ def get_recent_orders(limit=10):
         }
         for o in orders
     ]
+
+
+def get_all_orders(limit=500):
+    """Fetch all orders with fill details for audit reconciliation."""
+    client = get_client()
+    request = GetOrdersRequest(
+        status=QueryOrderStatus.ALL,
+        limit=limit,
+    )
+    orders = client.get_orders(request)
+    return [
+        {
+            "id": str(o.id),
+            "symbol": o.symbol,
+            "side": str(o.side),
+            "notional": str(o.notional) if o.notional else None,
+            "qty": str(o.qty) if o.qty else None,
+            "filled_qty": str(o.filled_qty) if o.filled_qty else None,
+            "filled_avg_price": str(o.filled_avg_price) if o.filled_avg_price else None,
+            "status": str(o.status),
+            "submitted_at": str(o.submitted_at),
+        }
+        for o in orders
+    ]

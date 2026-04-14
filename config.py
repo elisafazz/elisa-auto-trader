@@ -22,6 +22,7 @@ STRATEGY = "swing"            # Hold days to weeks, not day trading
 ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Sonnet for daily analysis (cost-efficient)
 DEEP_ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Upgrade to Opus when needed
 
-# Notion DB IDs
+# Notion DB IDs (page IDs for pages.create, data source IDs for querying)
 TRADE_LOG_DB = "abfc7ab1-17ad-44d2-a510-8bf39269d3fa"
+TRADE_LOG_DS = "23aec1ab-34bc-468e-a809-79c6ddb05aab"
 PERFORMANCE_REPORTS_DB = "005d0307-f9b1-4dca-9213-8a48745ee659"

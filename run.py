@@ -20,9 +20,15 @@ def main():
     parser.add_argument("--execute", action="store_true", help="Execute trade recommendations")
     parser.add_argument("--auto", action="store_true", help="Skip confirmation prompt (for cron/autonomous use)")
     parser.add_argument("--report", action="store_true", help="Generate weekly performance report")
+    parser.add_argument("--audit", action="store_true", help="Audit Notion Trade Log against Alpaca orders")
+    parser.add_argument("--fix", action="store_true", help="With --audit: backfill missing and enrich incomplete entries")
     args = parser.parse_args()
 
-    if not any([args.status, args.analyze, args.execute, args.report]):
+    if args.fix and not args.audit:
+        print("--fix requires --audit")
+        sys.exit(1)
+
+    if not any([args.status, args.analyze, args.execute, args.report, args.audit]):
         parser.print_help()
         sys.exit(1)
 
@@ -52,6 +58,10 @@ def main():
             traceback.print_exc()
             notify_failure("Weekly report", e)
             sys.exit(1)
+
+    if args.audit:
+        import auditor
+        auditor.run_audit(fix=args.fix)
 
 
 if __name__ == "__main__":

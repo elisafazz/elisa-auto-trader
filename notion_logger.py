@@ -18,21 +18,27 @@ def log_trade(trade_data):
 
     try:
         client = _get_client()
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        trade_date = trade_data.get("date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
         title = f"{trade_data['action'].upper()} {trade_data['symbol']} ${trade_data['amount']:.2f}"
+
+        properties = {
+            "Trade": {"title": [{"text": {"content": title}}]},
+            "Date": {"date": {"start": trade_date}},
+            "Symbol": {"rich_text": [{"text": {"content": trade_data["symbol"]}}]},
+            "Action": {"select": {"name": trade_data["action"].capitalize()}},
+            "Total": {"number": trade_data["amount"]},
+            "Strategy": {"select": {"name": trade_data.get("strategy", "swing").capitalize()}},
+            "Reasoning": {"rich_text": [{"text": {"content": trade_data.get("reasoning", "")[:2000]}}]},
+            "Paper Trade": {"checkbox": trade_data.get("paper", True)},
+        }
+        if trade_data.get("quantity") is not None:
+            properties["Quantity"] = {"number": trade_data["quantity"]}
+        if trade_data.get("price") is not None:
+            properties["Price"] = {"number": trade_data["price"]}
 
         client.pages.create(
             parent={"database_id": TRADE_LOG_DB},
-            properties={
-                "Trade": {"title": [{"text": {"content": title}}]},
-                "Date": {"date": {"start": today}},
-                "Symbol": {"rich_text": [{"text": {"content": trade_data["symbol"]}}]},
-                "Action": {"select": {"name": trade_data["action"].capitalize()}},
-                "Total": {"number": trade_data["amount"]},
-                "Strategy": {"select": {"name": trade_data.get("strategy", "swing").capitalize()}},
-                "Reasoning": {"rich_text": [{"text": {"content": trade_data.get("reasoning", "")[:2000]}}]},
-                "Paper Trade": {"checkbox": trade_data.get("paper", True)},
-            },
+            properties=properties,
         )
         print(f"  [Notion] Logged: {title}")
     except Exception as e:
