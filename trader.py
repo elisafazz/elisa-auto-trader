@@ -4,6 +4,7 @@ import alpaca_client
 import analyst
 import notion_logger
 import config
+import watchlist
 
 STARTING_VALUE = 100000.00  # Paper trading initial capital
 
@@ -47,19 +48,24 @@ def analyze():
     positions = alpaca_client.get_positions()
     recent_orders = alpaca_client.get_recent_orders(limit=5)
 
-    # Fetch live price data for holdings + SPY benchmark
+    # Fetch live price data for holdings + SPY benchmark + watchlist
     watched = [p["symbol"] for p in positions] if positions else []
     if "SPY" not in watched:
         watched.append("SPY")
+    for ticker in watchlist.all_watched():
+        if ticker not in watched:
+            watched.append(ticker)
     try:
         price_data = alpaca_client.get_bars(watched, days=10)
     except Exception:
         price_data = None
 
-    # Fetch market news for holdings
+    # Fetch market news for holdings + watchlist
     try:
-        held_symbols = [p["symbol"] for p in positions] if positions else None
-        news = alpaca_client.get_news(symbols=held_symbols, limit=10)
+        news_symbols = list(set(
+            [p["symbol"] for p in positions] if positions else []
+        ) | set(watchlist.all_watched()))
+        news = alpaca_client.get_news(symbols=news_symbols or None, limit=15)
     except Exception:
         news = None
 

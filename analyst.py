@@ -2,8 +2,9 @@ import json
 import time
 import anthropic
 import config
+import watchlist
 
-SYSTEM_PROMPT = """You are a swing trading analyst managing a small paper trading portfolio.
+SYSTEM_PROMPT = ("""You are a swing trading analyst managing a small paper trading portfolio.
 
 STRATEGY RULES:
 - Swing trading only: hold positions for days to weeks, not intraday
@@ -41,7 +42,7 @@ If no trades are warranted, return an empty recommendations array with an explan
     max_position_pct=int(config.MAX_POSITION_PCT * 100),
     min_cash_pct=int(config.MIN_CASH_RESERVE_PCT * 100),
     max_trades=config.MAX_TRADES_PER_SESSION,
-)
+) + watchlist.sector_bias_prompt())
 
 
 def analyze(account, positions, recent_orders, price_data=None, news=None):
