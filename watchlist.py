@@ -15,6 +15,7 @@ Update process:
 WATCHLIST_AI = [
     "GOOGL",  # Google -- Gemini + TPU + cheap multiple (top AI pick, score 26)
     "MSFT",   # Microsoft -- platform AI, lowest binary (24)
+    "NVDA",   # Nvidia -- CUDA moat, Blackwell ramp, already held (24, added 2026-04-16)
     "TSM",    # Taiwan Semi -- fab monopoly (23)
     # AVGO removed 2026-04-16: CFO retirement <90d + EU antitrust filing triggered
     # auto-fail per checklist. Re-evaluate after new CFO seated (est Q4 2026).
