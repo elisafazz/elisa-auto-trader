@@ -56,25 +56,74 @@ def get_positions():
     ]
 
 
+def _format_order(order):
+    return {
+        "id": str(order.id),
+        "symbol": order.symbol,
+        "side": str(order.side),
+        "notional": str(order.notional) if order.notional else None,
+        "qty": str(order.qty) if order.qty else None,
+        "status": str(order.status),
+        "submitted_at": str(order.submitted_at),
+    }
+
+
+def _find_position(client, symbol):
+    for p in client.get_all_positions():
+        if p.symbol == symbol:
+            return p
+    return None
+
+
 def place_order(symbol, side, notional):
-    """Place a market order using dollar amount (notional) for fractional share support."""
+    """Place a market order. Uses notional (dollar amount) for fractional shares.
+
+    SELL-safety: Alpaca converts notional SELLs to shares at current bid. When
+    the requested notional is within ~2% of position market value, bid drift
+    can push implied qty above held qty and the order is rejected with
+    insufficient qty (error 40310000). For near-full SELLs we submit qty=held
+    directly. Notional rejections below threshold are caught and retried with
+    qty=held as a fallback.
+    """
     client = get_client()
     order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
+
+    if order_side == OrderSide.SELL:
+        position = _find_position(client, symbol)
+        if position is not None:
+            held_qty = float(position.qty)
+            market_value = float(position.market_value)
+            if market_value > 0 and notional >= market_value * 0.98:
+                order_data = MarketOrderRequest(
+                    symbol=symbol,
+                    qty=held_qty,
+                    side=order_side,
+                    time_in_force=TimeInForce.DAY,
+                )
+                return _format_order(client.submit_order(order_data))
+
     order_data = MarketOrderRequest(
         symbol=symbol,
         notional=round(notional, 2),
         side=order_side,
         time_in_force=TimeInForce.DAY,
     )
-    order = client.submit_order(order_data)
-    return {
-        "id": str(order.id),
-        "symbol": order.symbol,
-        "side": str(order.side),
-        "notional": str(order.notional),
-        "status": str(order.status),
-        "submitted_at": str(order.submitted_at),
-    }
+    try:
+        return _format_order(client.submit_order(order_data))
+    except Exception as e:
+        # Fallback: if a SELL is rejected for insufficient qty (sub-threshold
+        # bid drift), retry with qty=held. Any other error re-raises.
+        if order_side == OrderSide.SELL and "insufficient qty" in str(e).lower():
+            position = _find_position(client, symbol)
+            if position and float(position.qty) > 0:
+                order_data = MarketOrderRequest(
+                    symbol=symbol,
+                    qty=float(position.qty),
+                    side=order_side,
+                    time_in_force=TimeInForce.DAY,
+                )
+                return _format_order(client.submit_order(order_data))
+        raise
 
 
 def get_data_client():
