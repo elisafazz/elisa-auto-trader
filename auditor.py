@@ -283,3 +283,9 @@ def run_audit(fix=False):
         backfill_missing(result["missing_from_notion"])
         enrich_existing(result["enrichable"])
         print("\nDone. Run --audit again to verify.")
+    else:
+        import alerts
+        alerts.alert_audit_mismatch(
+            result["missing_from_notion"],
+            result["amount_mismatches"],
+        )

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 import argparse
-import subprocess
 import sys
 import traceback
+import alerts
 import trader
 
 
 def notify_failure(mode, error):
-    """Send a macOS notification on unhandled failure (for cron runs)."""
-    msg = f"{mode} failed: {str(error)[:100]}"
-    script = f'display notification "{msg}" with title "Auto-Trader ERROR"'
-    subprocess.run(["osascript", "-e", script], capture_output=True)
+    """Persist a critical alert and fire a macOS notification."""
+    alerts.log_alert(
+        "critical",
+        "cron_failure",
+        f"{mode} failed: {str(error)[:200]}",
+        details={"mode": mode, "error_type": type(error).__name__},
+    )
 
 
 def main():

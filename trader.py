@@ -1,5 +1,6 @@
 import subprocess
 from datetime import datetime, timedelta
+import alerts
 import alpaca_client
 import analyst
 import notion_logger
@@ -117,7 +118,18 @@ def execute(recommendations):
                 print(f"  SKIP {symbol}: buying ${amount:.2f} would breach {config.MIN_CASH_RESERVE_PCT:.0%} cash reserve")
                 continue
 
-        order = alpaca_client.place_order(symbol, action, amount)
+        try:
+            order = alpaca_client.place_order(symbol, action, amount)
+        except Exception as e:
+            print(f"  ERROR {symbol}: {e}")
+            alerts.log_alert(
+                "critical",
+                "trade_error",
+                f"Order rejected: {action.upper()} ${amount:.2f} {symbol} -- {str(e)[:150]}",
+                details={"symbol": symbol, "action": action, "amount": amount},
+            )
+            continue
+
         print(f"  EXECUTED: {action.upper()} ${amount:.2f} of {symbol} -- order {order['id']}")
         executed.append({"recommendation": rec, "order": order})
 
@@ -136,6 +148,13 @@ def execute(recommendations):
 
 def auto_run():
     """Full autonomous loop: analyze -> execute -> notify. Used by cron."""
+    # Stuck-order check runs even on closed days so weekend stragglers surface
+    try:
+        all_orders = alpaca_client.get_all_orders(limit=50)
+        alerts.alert_stuck_orders(all_orders, hours_threshold=24)
+    except Exception as e:
+        print(f"  (stuck-order check skipped: {e})")
+
     # Skip if market is closed (holidays, weekends)
     clock = alpaca_client.get_clock()
     if not clock["is_open"]:
@@ -161,6 +180,13 @@ def auto_run():
         notify("Auto-Trader", f"Executed: {summary}")
     else:
         notify("Auto-Trader", "Analysis complete, all trades skipped (safety limits)")
+
+    # Drift check: read-only audit so morning briefing surfaces any divergence
+    try:
+        import auditor
+        auditor.run_audit(fix=False)
+    except Exception as e:
+        print(f"  (drift check skipped: {e})")
 
 
 def report():
