@@ -2,6 +2,7 @@
 briefing can surface them. Best-effort macOS notification as a fallback."""
 
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,12 +14,24 @@ VALID_TYPES = {"cron_failure", "trade_error", "stuck_order", "audit_mismatch"}
 SCAN_TYPES = {"stuck_order", "audit_mismatch"}  # latest scan supersedes prior
 
 
-def _resolve_prior(alert_type):
-    """Mark all prior unresolved alerts of this type as resolved.
-    Used for SCAN_TYPES so each daily scan supersedes the previous."""
+def _atomic_write_text(path, content):
+    """Atomic file replace: write sibling tempfile, fsync, then os.replace.
+    POSIX-atomic so a concurrent append to the original file can't interleave
+    with the rewrite."""
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("w") as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(str(tmp), str(path))
+
+
+def _mark_prior_resolved(alert_type, reason):
+    """Mark all prior unresolved alerts of this type as resolved with the given reason."""
     if not ALERTS_FILE.exists():
-        return
+        return 0
     lines_out = []
+    count = 0
     for line in ALERTS_FILE.read_text().splitlines():
         if not line.strip():
             continue
@@ -29,9 +42,26 @@ def _resolve_prior(alert_type):
             continue
         if entry.get("type") == alert_type and not entry.get("resolved"):
             entry["resolved"] = True
-            entry["resolved_by"] = "superseded"
+            entry["resolved_by"] = reason
+            count += 1
         lines_out.append(json.dumps(entry))
-    ALERTS_FILE.write_text("\n".join(lines_out) + "\n")
+    if count:
+        _atomic_write_text(ALERTS_FILE, "\n".join(lines_out) + "\n")
+    return count
+
+
+def _resolve_prior(alert_type):
+    """Supersede prior unresolved alerts when a new alert of this type fires."""
+    _mark_prior_resolved(alert_type, reason="superseded")
+
+
+def resolve_scan(alert_type, reason="clean_scan"):
+    """Mark prior unresolved scan alerts as resolved when a scan comes back clean.
+    Without this, stale audit/stuck-order warnings linger forever because the
+    supersede-on-new-alert path only triggers when the next scan also fails."""
+    if alert_type not in SCAN_TYPES:
+        return 0
+    return _mark_prior_resolved(alert_type, reason=reason)
 
 
 def log_alert(severity, alert_type, message, details=None):
@@ -101,9 +131,11 @@ def check_stuck_orders(orders, hours_threshold=24):
 
 
 def alert_stuck_orders(orders, hours_threshold=24):
-    """Convenience wrapper: detect stuck orders and log a single warning."""
+    """Convenience wrapper: detect stuck orders and log a single warning.
+    Clean scans clear prior unresolved stuck-order warnings."""
     stuck = check_stuck_orders(orders, hours_threshold)
     if not stuck:
+        resolve_scan("stuck_order")
         return []
     summary_parts = [f"{s['side']} {s['symbol']} ({s['age_hours']}h)" for s in stuck]
     log_alert(
@@ -116,8 +148,10 @@ def alert_stuck_orders(orders, hours_threshold=24):
 
 
 def alert_audit_mismatch(missing, mismatches, threshold=1):
-    """Log a warning if audit found unreconciled trades above threshold."""
+    """Log a warning if audit found unreconciled trades above threshold.
+    Clean scans clear prior unresolved audit_mismatch warnings."""
     if len(missing) < threshold and len(mismatches) < threshold:
+        resolve_scan("audit_mismatch")
         return False
     log_alert(
         "warning",

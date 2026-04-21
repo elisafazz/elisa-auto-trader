@@ -1,3 +1,5 @@
+import time
+import uuid
 from datetime import datetime, timedelta
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
@@ -7,6 +9,94 @@ from alpaca.data.historical.news import NewsClient
 from alpaca.data.requests import StockBarsRequest, NewsRequest
 from alpaca.data.timeframe import TimeFrame
 import config
+
+try:
+    from alpaca.common.exceptions import APIError as _AlpacaAPIError
+except ImportError:
+    _AlpacaAPIError = None
+
+_TRANSIENT_NETWORK_PATTERNS = (
+    "connection reset",
+    "connection aborted",
+    "connection refused",
+    "connection broken",
+    "timed out",
+    "timeout",
+    "temporarily unavailable",
+    "remote end closed",
+    "bad gateway",
+    "service unavailable",
+    "gateway timeout",
+)
+
+
+def _is_transient_network_error(exc):
+    """True if the exception looks like a retryable transport-layer failure."""
+    if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    msg = str(exc).lower()
+    return any(p in msg for p in _TRANSIENT_NETWORK_PATTERNS)
+
+
+def _is_duplicate_client_id_error(exc):
+    """Prefer Alpaca's structured APIError (status 422 + message hint) over
+    string-matching. Falls back to message match if APIError isn't importable
+    or doesn't match."""
+    if _AlpacaAPIError is not None and isinstance(exc, _AlpacaAPIError):
+        status = getattr(exc, "status_code", None)
+        msg = str(exc).lower()
+        if status == 422 and ("client_order_id" in msg or "duplicate" in msg or "already" in msg):
+            return True
+    msg = str(exc).lower()
+    return "client_order_id" in msg and ("already" in msg or "exists" in msg)
+
+
+def _submit_with_retry(client, order_data, max_attempts=3):
+    """Submit an order with transient-error retry. client_order_id is the
+    idempotency key: after a network failure we look up the order server-side
+    before retrying to avoid double-submission.
+
+    Safety policy:
+    - If the pre-retry lookup ITSELF fails with a transient network error, the
+      order state is unknown -- abort rather than risk a double-fill.
+    - If Alpaca rejects a retry with duplicate-id but lookup can't find the
+      order, the state is inconsistent -- abort.
+    - Non-transient lookup failures (e.g. AttributeError on SDK drift) only
+      allow a same-CID retry, relying on Alpaca's server-side CID uniqueness
+      check as the backstop."""
+    cid = getattr(order_data, "client_order_id", None)
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return client.submit_order(order_data)
+        except Exception as e:
+            transient = _is_transient_network_error(e)
+            duplicate = _is_duplicate_client_id_error(e)
+
+            if cid and (transient or duplicate):
+                try:
+                    existing = client.get_order_by_client_id(cid)
+                except Exception as lookup_err:
+                    if _is_transient_network_error(lookup_err):
+                        raise RuntimeError(
+                            f"Order state uncertain: submit failed ({str(e)[:80]}) "
+                            f"and idempotency lookup also failed with network error "
+                            f"({str(lookup_err)[:80]}). Not retrying to avoid double-fill."
+                        ) from e
+                    if duplicate:
+                        raise
+                    existing = None
+
+                if existing:
+                    return existing
+                if duplicate:
+                    # Alpaca said duplicate but lookup found no match -- inconsistent state.
+                    raise
+
+            if transient and attempt < max_attempts:
+                print(f"  (network error on submit, attempt {attempt}/{max_attempts}: {str(e)[:120]})")
+                time.sleep(2 ** (attempt - 1))
+                continue
+            raise
 
 
 def get_client():
@@ -75,6 +165,10 @@ def _find_position(client, symbol):
     return None
 
 
+def _new_cid():
+    return f"trader-{uuid.uuid4().hex[:16]}"
+
+
 def place_order(symbol, side, notional):
     """Place a market order. Uses notional (dollar amount) for fractional shares.
 
@@ -84,6 +178,9 @@ def place_order(symbol, side, notional):
     insufficient qty (error 40310000). For near-full SELLs we submit qty=held
     directly. Notional rejections below threshold are caught and retried with
     qty=held as a fallback.
+
+    Network-safety: every submit carries a unique client_order_id so transient
+    connection failures can be retried without risk of double-fill.
     """
     client = get_client()
     order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
@@ -99,17 +196,19 @@ def place_order(symbol, side, notional):
                     qty=held_qty,
                     side=order_side,
                     time_in_force=TimeInForce.DAY,
+                    client_order_id=_new_cid(),
                 )
-                return _format_order(client.submit_order(order_data))
+                return _format_order(_submit_with_retry(client, order_data))
 
     order_data = MarketOrderRequest(
         symbol=symbol,
         notional=round(notional, 2),
         side=order_side,
         time_in_force=TimeInForce.DAY,
+        client_order_id=_new_cid(),
     )
     try:
-        return _format_order(client.submit_order(order_data))
+        return _format_order(_submit_with_retry(client, order_data))
     except Exception as e:
         # Fallback: if a SELL is rejected for insufficient qty (sub-threshold
         # bid drift), retry with qty=held. Any other error re-raises.
@@ -121,8 +220,9 @@ def place_order(symbol, side, notional):
                     qty=float(position.qty),
                     side=order_side,
                     time_in_force=TimeInForce.DAY,
+                    client_order_id=_new_cid(),
                 )
-                return _format_order(client.submit_order(order_data))
+                return _format_order(_submit_with_retry(client, order_data))
         raise
 
 
