@@ -104,7 +104,7 @@ OPEN POSITIONS:
         try:
             response = client.messages.create(
                 model=config.ANALYSIS_MODEL,
-                max_tokens=1500,
+                max_tokens=4000,  # Sonnet 5 uses budget on thinking first; leave room for the JSON answer
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": portfolio_context}],
             )
@@ -117,7 +117,14 @@ OPEN POSITIONS:
             else:
                 raise
 
-    raw = response.content[0].text
+    # Newer models (Sonnet 5+) may return a ThinkingBlock before the text block;
+    # pick the first block that actually has text rather than assuming index 0.
+    raw = next(
+        (b.text for b in response.content if getattr(b, "type", None) == "text"),
+        None,
+    )
+    if raw is None:
+        raise RuntimeError(f"No text block in model response: {[getattr(b,'type',None) for b in response.content]}")
 
     # Parse JSON from response, stripping markdown fences if present
     text = raw.strip()

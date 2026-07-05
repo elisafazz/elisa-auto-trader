@@ -19,8 +19,8 @@ MIN_CASH_RESERVE_PCT = 0.10   # Always keep 10% cash
 STRATEGY = "swing"            # Hold days to weeks, not day trading
 
 # Claude API
-ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Sonnet for daily analysis (cost-efficient)
-DEEP_ANALYSIS_MODEL = "claude-sonnet-4-20250514"  # Upgrade to Opus when needed
+ANALYSIS_MODEL = "claude-sonnet-5"  # Sonnet 5 for daily analysis (cost-efficient); prior ID claude-sonnet-4-20250514 retired ~May 2026 and silently 404'd the engine for 2 months
+DEEP_ANALYSIS_MODEL = "claude-opus-4-8"  # Opus 4.8 for deep analysis when needed
 
 # Notion DB IDs (page IDs for pages.create, data source IDs for querying)
 TRADE_LOG_DB = "abfc7ab1-17ad-44d2-a510-8bf39269d3fa"
