@@ -161,6 +161,7 @@ NON_BIOTECH = {"PLTR"}
 
 def check_superset(headers):
     """Fail loud if any biotech ticker the trader tracks is missing from the registry."""
+    sys.path.insert(0, str(Path(__file__).parent))  # import watchlist regardless of cwd
     import watchlist
     tracked = sorted((set(watchlist.WATCHLIST_BIOTECH) | set(watchlist.WATCHLIST_MANUAL_ONLY)) - NON_BIOTECH)
     reg = {ticker_of(r["properties"]) for r in _all_rows(headers)}
