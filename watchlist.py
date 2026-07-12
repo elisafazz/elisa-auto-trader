@@ -11,21 +11,38 @@ Update process:
 5. Commit + push so the daily analyst sees the update
 """
 
+# Thesis (Elisa, set 2026-07-06; watchlist reshaped 2026-07-12 via /portfolio-review):
+# AI INFRASTRUCTURE, ex-mega-cap (picks-and-shovels: chips/memory/networking/power/
+# cooling), NOT the hyperscalers (GOOGL/MSFT/AMZN/META excluded), plus EMERGING/budding
+# biotech (not big pharma). Barbell: NVDA/AVGO ballast + smaller infra & biotech sleeve.
+
 # Tier 1 -- daily analyst should actively consider these
+# AI-infra scout 2026-07-12 (grounded, filings/earnings-verified, auto-fails checked):
 WATCHLIST_AI = [
-    "GOOGL",  # Google -- Gemini + TPU + cheap multiple (top AI pick, score 26)
-    "MSFT",   # Microsoft -- platform AI, lowest binary (24)
-    "NVDA",   # Nvidia -- CUDA moat, Blackwell ramp, already held (24, added 2026-04-16)
-    "TSM",    # Taiwan Semi -- fab monopoly (23)
-    # AVGO removed 2026-04-16: CFO retirement <90d + EU antitrust filing triggered
-    # auto-fail per checklist. Re-evaluate after new CFO seated (est Q4 2026).
+    # Ballast (NVDA-class large infra)
+    "NVDA",   # Nvidia -- CUDA moat, Blackwell ramp, Strong Buy (26/30, GREEN)
+    "AVGO",   # Broadcom -- custom ASIC + networking, Strong Buy (27/30, GREEN); prior
+              # 2026-04 CFO/antitrust auto-fail cleared, re-added 2026-07-12
+    # Smaller infra sleeve
+    "VRT",    # Vertiv -- liquid cooling, $15B backlog (25/30, GREEN)
+    "CEG",    # Constellation -- nuclear PPAs for data centers, reasonably valued (25/30, GREEN)
+    "MU",     # Micron -- HBM sold out on multi-year deals (24/30, GREEN); size cycle risk
+    "ALAB",   # Astera Labs -- connectivity/scale-up switch (24/30, YELLOW); half-size, rich multiple
+    "TSM",    # Taiwan Semi -- foundry monopoly, held; borderline-infra ballast (23)
+    # SMCI auto-fail (active DOJ export-control matter). MRVL auto-fail (CFO departure
+    # <90d) -- re-evaluate ~2026-09-13. GOOGL/MSFT dropped 2026-07-12 (mega-cap, off-thesis).
 ]
 
+# Emerging/budding biotech -- sourced from the Biotech & Tech-Bio registry by Investment
+# Score (2026-07-12), replacing big-pharma names. High-variance: small sleeve, half-size.
 WATCHLIST_BIOTECH = [
-    "LLY",    # Eli Lilly -- GLP-1 monopoly
-    "VRTX",   # Vertex -- CF + pain + gene therapy, cash-rich
-    "REGN",   # Regeneron -- Dupixent + EYLEA, reasonable multiple
-    "IBB",    # iShares biotech ETF -- diversifies single-name binary risk
+    "KARD",   # Kardigan -- registry Investment Score 72
+    "LRMR",   # Larimar Therapeutics -- score 70, Phase 3
+    "ABSI",   # Absci -- score 70, AI drug discovery / tech-bio platform
+    "PRAX",   # Praxis Precision Medicine -- score 65, Phase 3
+    "DNLI",   # Denali Therapeutics -- score 65
+    "GH",     # Guardant Health -- score 62, clinical-AI & diagnostics
+    # Dropped 2026-07-12 (off-thesis big pharma / broad ETF): LLY, VRTX, REGN, IBB.
 ]
 
 # Manual-only -- never auto-trade (binary catalysts, strategy mismatch)
@@ -48,11 +65,16 @@ def sector_bias_prompt():
     ai_list = ", ".join(WATCHLIST_AI)
     biotech_list = ", ".join(WATCHLIST_BIOTECH)
     return (
-        f"\nSECTOR FOCUS:\n"
-        f"Elisa has expressed interest in AI and biotech as long-term allocation themes. "
+        f"\nSECTOR FOCUS (thesis set 2026-07-06):\n"
+        f"Elisa's allocation thesis is AI INFRASTRUCTURE, ex-mega-cap -- the picks-and-shovels "
+        f"layer (chips/accelerators, memory, networking, power, cooling, data-center), NOT the "
+        f"hyperscalers. Do NOT open new positions in the mega-cap platform names GOOGL, MSFT, "
+        f"AMZN, or META. The second sleeve is EMERGING/budding biotech (small/mid-cap, clinical, "
+        f"AI drug discovery), NOT big pharma. Barbell: keep large infra ballast plus a smaller "
+        f"higher-upside sleeve.\n"
         f"When conviction is comparable, prefer these watchlist names:\n"
-        f"- AI: {ai_list}\n"
-        f"- Biotech: {biotech_list}\n"
+        f"- AI infrastructure: {ai_list}\n"
+        f"- Emerging biotech: {biotech_list}\n"
         f"Do not force trades into these names, but treat them as preferred candidates "
         f"for new positions. Avoid the following (binary catalysts, strategy mismatch): "
         f"{', '.join(WATCHLIST_MANUAL_ONLY)}."
