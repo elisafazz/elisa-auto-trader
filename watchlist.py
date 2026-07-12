@@ -16,40 +16,48 @@ Update process:
 # cooling), NOT the hyperscalers (GOOGL/MSFT/AMZN/META excluded), plus EMERGING/budding
 # biotech (not big pharma). Barbell: NVDA/AVGO ballast + smaller infra & biotech sleeve.
 
-# Tier 1 -- daily analyst should actively consider these
-# AI-infra scout 2026-07-12 (grounded, filings/earnings-verified, auto-fails checked):
+# Tier 1 -- daily analyst should actively consider these.
+# Full basket reshape 2026-07-12 (grounded AI-infra scout, filings/earnings-verified, auto-fails
+# checked). Diversified across the AI-infra stack, not 2 chip names.
 WATCHLIST_AI = [
     # Ballast (NVDA-class large infra)
-    "NVDA",   # Nvidia -- CUDA moat, Blackwell ramp, Strong Buy (26/30, GREEN)
-    "AVGO",   # Broadcom -- custom ASIC + networking, Strong Buy (27/30, GREEN); prior
-              # 2026-04 CFO/antitrust auto-fail cleared, re-added 2026-07-12
-    # Smaller infra sleeve
-    "VRT",    # Vertiv -- liquid cooling, $15B backlog (25/30, GREEN)
-    "CEG",    # Constellation -- nuclear PPAs for data centers, reasonably valued (25/30, GREEN)
-    "MU",     # Micron -- HBM sold out on multi-year deals (24/30, GREEN); size cycle risk
-    "ALAB",   # Astera Labs -- connectivity/scale-up switch (24/30, YELLOW); half-size, rich multiple
-    "TSM",    # Taiwan Semi -- foundry monopoly, held; borderline-infra ballast (23)
-    # SMCI auto-fail (active DOJ export-control matter). MRVL auto-fail (CFO departure
-    # <90d) -- re-evaluate ~2026-09-13. GOOGL/MSFT dropped 2026-07-12 (mega-cap, off-thesis).
+    "NVDA",   # Nvidia -- accelerators, CUDA moat, Blackwell ramp (Strong Buy 26/30, GREEN)
+    "AVGO",   # Broadcom -- custom ASIC + networking (Strong Buy 28/30, GREEN)
+    # Diversified sleeve, one per sub-sector
+    "TSM",    # Taiwan Semi -- foundry (23, GREEN)
+    "ANET",   # Arista -- networking / switching (Strong Buy 26/30, GREEN)
+    "VST",    # Vistra -- power / energy, cheapest quality ~18x (24/30, GREEN)
+    "VRT",    # Vertiv -- cooling / thermal, $15B backlog (Strong Buy 26/30, GREEN); half-size
+    "MU",     # Micron -- memory / HBM, sold out (22/30, YELLOW); half-size, cyclical peak
+    "ALAB",   # Astera Labs -- interconnect (25/30, GREEN); half-size, very rich
+    # SMCI auto-fail (active DOJ export-control matter). MRVL auto-fail (CFO departure <90d) --
+    # re-eligible ~2026-09-13. GOOGL/MSFT excluded (mega-cap hyperscalers, off-thesis).
 ]
 
-# Emerging/budding biotech -- sourced from the Biotech & Tech-Bio registry by Investment
-# Score (2026-07-12), replacing big-pharma names. High-variance: small sleeve, half-size.
+# Emerging biotech -- near-term, likely-positive clinical/FDA catalysts (grounded research
+# 2026-07-12). All HALF-SIZE (binary catalyst risk); tilted to APPROVAL-risk (positive pivotal
+# already in hand, awaiting PDUFA) over pending-data readouts. Catalysts spread Sep 2026 -> Feb 2027.
 WATCHLIST_BIOTECH = [
-    "KARD",   # Kardigan -- registry Investment Score 72
-    "LRMR",   # Larimar Therapeutics -- score 70, Phase 3
-    "ABSI",   # Absci -- score 70, AI drug discovery / tech-bio platform
-    "PRAX",   # Praxis Precision Medicine -- score 65, Phase 3
-    "DNLI",   # Denali Therapeutics -- score 65
-    "GH",     # Guardant Health -- score 62, clinical-AI & diagnostics
-    # Dropped 2026-07-12 (off-thesis big pharma / broad ETF): LLY, VRTX, REGN, IBB.
+    "COGT",   # Cogent -- GIST PDUFA Nov 30 + mastocytosis Dec 30 2026 (two approvals)
+    "PTGX",   # Protagonist -- rusfertide PDUFA Q3 2026 (polycythemia vera)
+    "BBIO",   # BridgeBio -- BBP-418 PDUFA Nov 27 2026 (LGMD), revenue-backed
+    "SRRK",   # Scholar Rock -- apitegromab PDUFA Sep 30 2026 (SMA)
+    "RARE",   # Ultragenyx -- UX111 PDUFA Sep 19 2026 (Sanfilippo gene therapy)
+    "PCVX",   # Vaxcyte -- VAX-31 topline Q4 2026 (immunobridging endpoint)
+    "CGEM",   # Cullinan -- zipalertinib PDUFA Feb 27 2027 (EGFR ex20 NSCLC)
+    # Excluded on auto-fail / pure binary data-readout (see MANUAL_ONLY): CLDX, SMMT, SVRA, CAPR, LRMR.
+    # Big pharma dropped as off-thesis: LLY, VRTX, REGN, IBB.
 ]
 
-# Manual-only -- never auto-trade (binary catalysts, strategy mismatch)
+# Manual-only -- never auto-trade (pure binary data-readouts, auto-fail flags, strategy mismatch)
 WATCHLIST_MANUAL_ONLY = [
-    "VKTX",   # Viking Tx -- Phase 3 catalyst in 2026
-    "SMMT",   # Summit Tx -- ivonescimab trials 2026-2027
-    "CRSP",   # CRISPR Tx -- small-cap gene therapy
+    "CLDX",   # Celldex -- barzolvolimab Phase 3 CSU readout Q4 2026 (data-risk, high variance)
+    "SMMT",   # Summit -- ivonescimab; mixed OS/squamous data + funding overhang
+    "SVRA",   # Savara -- single-product aPAP PDUFA (high single-name variance)
+    "CAPR",   # Capricor -- deramiocel post-CRL resubmission (auto-fail: prior CRL)
+    "LRMR",   # Larimar -- nomlabofusp; anaphylaxis safety signal + plaintiff probe (auto-fail flags)
+    "VKTX",   # Viking Tx -- make-or-break obesity Phase 3 not until 2027 (out of window)
+    "CRSP",   # CRISPR Tx -- small-cap gene therapy, binary
     "SDGR",   # Schrodinger -- small-cap AI-drug discovery
     "PLTR",   # Palantir -- extreme valuation overlay
 ]
@@ -65,17 +73,23 @@ def sector_bias_prompt():
     ai_list = ", ".join(WATCHLIST_AI)
     biotech_list = ", ".join(WATCHLIST_BIOTECH)
     return (
-        f"\nSECTOR FOCUS (thesis set 2026-07-06):\n"
+        f"\nSECTOR FOCUS (thesis set 2026-07-06, basket built 2026-07-12):\n"
         f"Elisa's allocation thesis is AI INFRASTRUCTURE, ex-mega-cap -- the picks-and-shovels "
         f"layer (chips/accelerators, memory, networking, power, cooling, data-center), NOT the "
         f"hyperscalers. Do NOT open new positions in the mega-cap platform names GOOGL, MSFT, "
-        f"AMZN, or META. The second sleeve is EMERGING/budding biotech (small/mid-cap, clinical, "
-        f"AI drug discovery), NOT big pharma. Barbell: keep large infra ballast plus a smaller "
-        f"higher-upside sleeve.\n"
+        f"AMZN, or META. The second sleeve is EMERGING biotech with near-term, likely-positive "
+        f"clinical/FDA catalysts, NOT big pharma.\n"
+        f"PORTFOLIO CONSTRUCTION:\n"
+        f"- Maintain a DIVERSIFIED basket of roughly 12-15 on-thesis names across sub-sectors; do "
+        f"NOT concentrate into a few names.\n"
+        f"- Size each EMERGING BIOTECH position at HALF a normal position -- they carry binary "
+        f"catalyst risk (a single FDA/trial readout can gap 40-70%).\n"
+        f"- If any OFF-THESIS legacy name is held (mega-cap, big pharma, broad ETF), prefer trimming "
+        f"or exiting it in favor of on-thesis names.\n"
         f"When conviction is comparable, prefer these watchlist names:\n"
         f"- AI infrastructure: {ai_list}\n"
-        f"- Emerging biotech: {biotech_list}\n"
-        f"Do not force trades into these names, but treat them as preferred candidates "
-        f"for new positions. Avoid the following (binary catalysts, strategy mismatch): "
+        f"- Emerging biotech (half-size): {biotech_list}\n"
+        f"Do not force trades, but treat these as the preferred universe. NEVER auto-trade the "
+        f"following (binary data-readouts, auto-fail flags, strategy mismatch): "
         f"{', '.join(WATCHLIST_MANUAL_ONLY)}."
     )

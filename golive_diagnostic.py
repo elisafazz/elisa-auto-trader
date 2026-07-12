@@ -22,7 +22,7 @@ from datetime import datetime, date, timezone
 import config
 import alpaca_client
 
-CLEAN_START = "2026-07-05"          # brain-fix date; paper record before this is invalid
+CLEAN_START = "2026-07-12"          # portfolio reset date; account reset to $100K + on-thesis basket deployed (prior curve invalid)
 WF_DB = "358f3cdd-67a4-8061-8b0c-f49ef7e1f9e7"
 PAPER_BASE = "https://paper-api.alpaca.markets"
 

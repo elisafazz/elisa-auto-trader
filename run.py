@@ -25,18 +25,28 @@ def main():
     parser.add_argument("--report", action="store_true", help="Generate weekly performance report")
     parser.add_argument("--audit", action="store_true", help="Audit Notion Trade Log against Alpaca orders")
     parser.add_argument("--fix", action="store_true", help="With --audit: backfill missing and enrich incomplete entries")
+    parser.add_argument("--positions", action="store_true", help="Refresh the Notion Current Holdings page from live positions")
+    parser.add_argument("--deploy", action="store_true", help="Deploy the target basket into a freshly reset $100K account (preview unless --auto)")
     args = parser.parse_args()
 
     if args.fix and not args.audit:
         print("--fix requires --audit")
         sys.exit(1)
 
-    if not any([args.status, args.analyze, args.execute, args.report, args.audit]):
+    if not any([args.status, args.analyze, args.execute, args.report, args.audit, args.positions, args.deploy]):
         parser.print_help()
         sys.exit(1)
 
     if args.status:
         trader.status()
+
+    if args.positions:
+        import positions_page
+        positions_page.refresh_positions_page()
+
+    if args.deploy:
+        import deploy_portfolio
+        deploy_portfolio.deploy(execute=args.auto)
 
     if args.analyze and args.execute and args.auto:
         try:

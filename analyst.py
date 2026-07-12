@@ -12,6 +12,7 @@ STRATEGY RULES:
 - Keep at least {min_cash_pct}% of portfolio in cash at all times
 - Maximum {max_trades} trade recommendations per session
 - Focus on high-conviction ideas with clear catalysts
+- Build and maintain a DIVERSIFIED on-thesis basket (see SECTOR FOCUS below); do not concentrate into a few names
 - Consider tax implications: avoid rapid round-trips that create wash sales
 
 ANALYSIS APPROACH:

@@ -143,6 +143,14 @@ def execute(recommendations):
             "paper": config.PAPER_TRADING,
         })
 
+    # Any portfolio change refreshes the Notion holdings snapshot (both cron and manual paths)
+    if executed:
+        try:
+            import positions_page
+            positions_page.refresh_positions_page()
+        except Exception as e:
+            print(f"  (holdings page refresh skipped: {e})")
+
     return executed
 
 
@@ -187,6 +195,13 @@ def auto_run():
         auditor.run_audit(fix=False)
     except Exception as e:
         print(f"  (drift check skipped: {e})")
+
+    # Keep the Notion holdings page current every trading day (prices drift without trades)
+    try:
+        import positions_page
+        positions_page.refresh_positions_page()
+    except Exception as e:
+        print(f"  (holdings page refresh skipped: {e})")
 
 
 def report():
