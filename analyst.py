@@ -101,31 +101,36 @@ OPEN POSITIONS:
         "What trades, if any, should I make today?"
     )
 
+    raw = None
     for attempt in range(5):
         try:
             response = client.messages.create(
                 model=config.ANALYSIS_MODEL,
-                max_tokens=4000,  # Sonnet 5 uses budget on thinking first; leave room for the JSON answer
+                max_tokens=8000,  # Sonnet 5 uses budget on thinking first; 4000 was fully consumed by a thinking-only response on 2026-07-15
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": portfolio_context}],
             )
-            break
         except anthropic.APIStatusError as e:
             if e.status_code in (429, 529) and attempt < 4:
                 wait = 60 * (attempt + 1)
                 print(f"API {e.status_code}, retrying in {wait}s (attempt {attempt + 1}/5)...")
                 time.sleep(wait)
-            else:
-                raise
+                continue
+            raise
+        # Newer models (Sonnet 5+) may return a ThinkingBlock before the text block;
+        # pick the first block that actually has text rather than assuming index 0.
+        raw = next(
+            (b.text for b in response.content if getattr(b, "type", None) == "text"),
+            None,
+        )
+        if raw is not None:
+            break
+        if attempt < 4:
+            print(f"Thinking-only response (stop_reason={getattr(response, 'stop_reason', '?')}), retrying (attempt {attempt + 1}/5)...")
+            time.sleep(10)
 
-    # Newer models (Sonnet 5+) may return a ThinkingBlock before the text block;
-    # pick the first block that actually has text rather than assuming index 0.
-    raw = next(
-        (b.text for b in response.content if getattr(b, "type", None) == "text"),
-        None,
-    )
     if raw is None:
-        raise RuntimeError(f"No text block in model response: {[getattr(b,'type',None) for b in response.content]}")
+        raise RuntimeError(f"No text block in model response after retries: {[getattr(b,'type',None) for b in response.content]}")
 
     # Parse JSON from response, stripping markdown fences if present
     text = raw.strip()
